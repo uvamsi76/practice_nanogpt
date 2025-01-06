@@ -34,8 +34,6 @@ model=torch.compile(model)
 
 train_loader=DataLoaderLite(B=2, T=512)
 
-torch.set_float32_matmul_precision('high')
-
 # logits,loss=model(x,y)
 # print(loss)
 optimizer = torch.optim.AdamW(model.parameters(),lr=3e-4)
