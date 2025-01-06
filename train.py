@@ -14,6 +14,7 @@ device='cpu'
 if(torch.cuda.is_available()):
     device='cuda'
 
+
 print(f"we have the device : {device}")
 
 torch.set_float32_matmul_precision('high')
