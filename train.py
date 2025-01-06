@@ -7,11 +7,11 @@ from transformers import GPT2LMHeadModel
 import tiktoken 
 
 from model import GPTconfig,GPT
-from utils import generate
+from utils import generate,DataLoaderLite
 
 device='cpu'
-# if(torch.cuda.is_available()):
-#     device='cuda'
+if(torch.cuda.is_available()):
+    device='cuda'
 
 print(f"we have the device : {device}")
 
@@ -25,25 +25,16 @@ print('didnt crash')
 model.eval()
 model.to(device)
 
-enc=tiktoken.get_encoding('gpt2')
-
-with open('input.txt','r') as f:
-    data=f.read()
-text=data[:1000]
-tokens=enc.encode(text)
-B=4
-T=32
-buf=torch.tensor(tokens[:B*T + 1])
-buf=buf.to(device)
-x=buf[:-1].view(B,T)
-y=buf[1:].view(B,T)
-
+train_loader=DataLoaderLite(B=4, T=32)
 
 # logits,loss=model(x,y)
 # print(loss)
 optimizer = torch.optim.AdamW(model.parameters(),lr=3e-4)
 
 for i in range(50):
+    x,y=train_loader.next_batch()
+    x=x.to(device)
+    y=y.to(device)
     optimizer.zero_grad()
     logits,loss=model(x,y)
     loss.backward()
@@ -60,3 +51,17 @@ import sys; sys.exit(0)
 
 # sampling from the logits to predict next token basically generating logic 
 generate(model,num_return_sequences,device,max_length)
+
+
+# enc=tiktoken.get_encoding('gpt2')
+
+# with open('input.txt','r') as f:
+#     data=f.read()
+# text=data[:1000]
+# tokens=enc.encode(text)
+# B=4
+# T=32
+# buf=torch.tensor(tokens[:B*T + 1])
+# buf=buf.to(device)
+# x=buf[:-1].view(B,T)
+# y=buf[1:].view(B,T)
