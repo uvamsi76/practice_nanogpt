@@ -15,6 +15,9 @@ if(torch.cuda.is_available()):
 
 print(f"we have the device : {device}")
 
+torch.manual_seed(1337)
+if( torch.cuda.is_available()):
+    torch.cuda.manual_seed(1337)
 
 num_return_sequences=5
 max_length=60
