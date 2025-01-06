@@ -23,6 +23,7 @@ class CasualSelfAttention(nn.Module):
         self.c_proj=nn.Linear(config.n_embd, config.n_embd)
         # self.attn_dropout = nn.Dropout(config.dropout)
         # self.resid_dropout = nn.Dropout(config.dropout)
+        self.c_proj.NANOGPT_SCALE_INIT = 1
         self.register_buffer("bias", torch.tril(torch.ones(config.block_size, config.block_size))
                                     .view(1, 1, config.block_size, config.block_size))
         self.n_head = config.n_head
@@ -58,6 +59,8 @@ class MLP(nn.Module):
         self.c_fc=nn.Linear(config.n_embd, 4*config.n_embd)
         self.gelu=nn.GELU(approximate='tanh')
         self.c_proj=nn.Linear(4*config.n_embd, config.n_embd)
+        self.c_proj.NANOGPT_SCALE_INIT = 1
+
     def forward(self,x):
         x=self.c_fc(x)
         x=self.gelu(x)
@@ -98,7 +101,7 @@ class GPT(nn.Module):
 
         # weight initializatrion
         self.apply(self._initweights)
-        
+
         n_params=sum([p.numel() for p in self.transformer.parameters()])
 
         print(f"The number of parameters inside this transformer is {n_params}")
@@ -107,7 +110,10 @@ class GPT(nn.Module):
 
     def _initweights(self,module):
         if(isinstance(module,nn.Linear)):
-            torch.nn.init.normal_(module.weight, mean=0.0, std=0.02)
+            std=0.02
+            if(hasattr(module,'NANOGPT_SCALE_INIT')):
+                std*=(2 * self.config.n_layer) ** -0.5
+            torch.nn.init.normal_(module.weight, mean=0.0, std=std)
             if module.bias is not None:
                 torch.nn.init.zeros_(module.bias)
         elif(isinstance(module,nn.Embedding)):
