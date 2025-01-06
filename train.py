@@ -30,6 +30,7 @@ model = GPT(config)
 print('didnt crash')
 model.eval()
 model.to(device)
+model=torch.compile(model)
 
 train_loader=DataLoaderLite(B=2, T=512)
 
@@ -46,8 +47,8 @@ for i in range(50):
     x=x.to(device)
     y=y.to(device)
     optimizer.zero_grad()
-    with torch.autocast(device_type=device,dtype=torch.bfloat16):
-        logits,loss=model(x,y)
+    # with torch.autocast(device_type=device,dtype=torch.bfloat16):
+    logits,loss=model(x,y)
     loss.backward()
     optimizer.step()
     
