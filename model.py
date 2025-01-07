@@ -5,6 +5,7 @@ from torch.nn import functional as F
 import math
 from transformers import GPT2LMHeadModel
 import tiktoken 
+import inspect
 
 @dataclass
 class GPTconfig:
@@ -184,4 +185,29 @@ class GPT(nn.Module):
                     sd[k].copy_(sd_hf[k])
 
         return model
+
+    def configure_optimisers(self,weight_decay,learning_rate,device):
+
+        param_dict={pn: p for pn,p in self.named_parameters()}
         
+        param_dict={pn: p for pn,p in  param_dict.items() if p.requires_grad }
+
+        decay_params=[p for n,p in param_dict.items() if p.dim()>= 2 ]
+
+        non_decay_params=[p for n,p in param_dict.items() if p.dim() < 2 ]
+        optim_groups=[
+                {'params':decay_params,'weight_decay':weight_decay},
+                {'params':non_decay_params,weight_decay:0.0}
+        ]
+        num_decay_params=sum(p.numel() for p in decay_params )
+        non_num_decay_params=sum(p.numel() for p in non_decay_params )
+        print(f"num decayed parameter tensors= {num_decay_params}")
+        print(f"num non-decayed parameter tensors= {non_num_decay_params}")
+
+        fused_available= 'fused' in inspect.signature(torch.optim.AdamW).parameters
+        use_fused=fused_available and 'cuda' in device
+        print(f"using fused adamW: {use_fused}")
+
+        optimizer=torch.optim.AdamW(optim_groups,lr=learning_rate, betas=(0.9,0.95),eps= 1e-8,fused=use_fused)
+        
+        return optimizer
