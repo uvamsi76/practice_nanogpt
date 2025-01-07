@@ -53,3 +53,17 @@ class DataLoaderLite:
         if(self.current_position + B*T >len(self.tokens)):
             self.current_position=0
         return x,y
+
+max_lr=6e-4
+min_lr=max_lr * 0.1
+warmup_steps=10
+def get_lr(step,max_steps=50):
+    if(step < warmup_steps,):
+        return max_lr * (step+1)/ warmup_steps
+    if( step > max_steps):
+        return min_lr
+    decay_ratio=(step - warmup_steps) / (max_steps - warmup_steps)
+
+    coeff=0.5 * (1.0 + math.cos(math.pi*decay_ratio))
+
+    return min_lr + coeff * (max_lr -min_lr)

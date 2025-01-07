@@ -8,12 +8,14 @@ import tiktoken
 import time
 
 from model import GPTconfig,GPT
-from utils import generate,DataLoaderLite
+from utils import generate,DataLoaderLite,get_lr
 
 device='cpu'
 if(torch.cuda.is_available()):
     device='cuda'
 
+
+max_steps=50
 
 print(f"we have the device : {device}")
 
@@ -39,7 +41,7 @@ train_loader=DataLoaderLite(B=2, T=512)
 # print(loss)
 optimizer = torch.optim.AdamW(model.parameters(),lr=3e-4, betas=(0.9,0.95),eps=1e-8)
 
-for i in range(50):
+for step in range(max_steps):
     t0=time.time()
 
     x,y=train_loader.next_batch()
@@ -50,6 +52,12 @@ for i in range(50):
         logits,loss=model(x,y)
     loss.backward()
 
+    lr=get_lr(step)
+
+    for param_group in optimizer.param_groups:
+        param_group['lr'] = lr
+
+
     norm=torch.nn.utils.clip_grad_norm_(model.parameters() , 1.0 )
 
     optimizer.step()
@@ -59,7 +67,7 @@ for i in range(50):
     t1=time.time()
     dt = (t1-t0) * 1000
     tokens_per_sec=(train_loader.B*train_loader.B)/(t1-t0)
-    print(f"step: {i} ------> loss: {loss.item()}----------->Norm: {norm:.4f} ------------> dt: {dt:.2f}ms--------> tokens/sec:{tokens_per_sec:.2f}")
+    print(f"step: {step} ------> loss: {loss.item()}----------->Norm: {norm:.4f} -----> LR: {lr:.4e}   -------> dt: {dt:.2f}ms--------> tokens/sec:{tokens_per_sec:.2f}")
 
 
 
