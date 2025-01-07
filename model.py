@@ -108,7 +108,7 @@ class GPT(nn.Module):
 
         n_params=sum([p.numel() for p in self.transformer.parameters()])
 
-        print(f"The number of parameters inside this transformer is {n_params}")
+        # print(f"The number of parameters inside this transformer is {n_params}")
 
         print("The number of parameters : %.2fM"% (n_params/1e6))
 
@@ -201,12 +201,12 @@ class GPT(nn.Module):
         ]
         num_decay_params=sum(p.numel() for p in decay_params )
         non_num_decay_params=sum(p.numel() for p in non_decay_params )
-        print(f"num decayed parameter tensors= {num_decay_params}")
-        print(f"num non-decayed parameter tensors= {non_num_decay_params}")
+        # print(f"num decayed parameter tensors= {num_decay_params}")
+        # print(f"num non-decayed parameter tensors= {non_num_decay_params}")
 
         fused_available= 'fused' in inspect.signature(torch.optim.AdamW).parameters
         use_fused=fused_available and 'cuda' in device
-        print(f"using fused adamW: {use_fused}")
+        # print(f"using fused adamW: {use_fused}")
 
         optimizer=torch.optim.AdamW(optim_groups,lr=learning_rate, betas=(0.9,0.95),eps= 1e-8,fused=use_fused)
         
