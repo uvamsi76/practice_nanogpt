@@ -35,7 +35,16 @@ model.eval()
 model.to(device)
 # model=torch.compile(model)
 
-train_loader=DataLoaderLite(B=16, T=1024)
+total_batch_size=524288
+# B=64 H100 is handling this well
+B=16
+T=1024
+grad_accum_steps=total_batch_size// (B*T)
+
+print(f"total desired batch size:{total_batch_size}")
+print(f"calculated grad accum step:{grad_accum_steps}")
+
+train_loader=DataLoaderLite(B=B, T=T)
 # train_loader=DataLoaderLite(B=2, T=512)
 # logits,loss=model(x,y)
 # print(loss)
@@ -44,22 +53,27 @@ optimizer = model.configure_optimisers(weight_decay=0.1,learning_rate=6e-4,devic
 
 for step in range(max_steps):
     t0=time.time()
+    loss_accum=0.0
+    for micro_step in range(grad_accum_steps):
+        x,y=train_loader.next_batch()
+        x=x.to(device)
+        y=y.to(device)
+        optimizer.zero_grad()
+        with torch.autocast(device_type=device,dtype=torch.bfloat16):
+            logits,loss=model(x,y)
+        
+        loss=loss / grad_accum_steps
+        loss_accum+=loss.detach()
 
-    x,y=train_loader.next_batch()
-    x=x.to(device)
-    y=y.to(device)
-    optimizer.zero_grad()
-    with torch.autocast(device_type=device,dtype=torch.bfloat16):
-        logits,loss=model(x,y)
-    loss.backward()
+        loss.backward()
+
+
+    norm=torch.nn.utils.clip_grad_norm_(model.parameters() , 1.0 )
 
     lr=get_lr(step)
 
     for param_group in optimizer.param_groups:
         param_group['lr'] = lr
-
-
-    norm=torch.nn.utils.clip_grad_norm_(model.parameters() , 1.0 )
 
     optimizer.step()
     
@@ -67,8 +81,8 @@ for step in range(max_steps):
     
     t1=time.time()
     dt = (t1-t0) * 1000
-    tokens_per_sec=(train_loader.B*train_loader.B)/(t1-t0)
-    print(f"step: {step} ------> loss: {loss.item()}----------->Norm: {norm:.4f} -----> LR: {lr:.4e}   -------> dt: {dt:.2f}ms--------> tokens/sec:{tokens_per_sec:.2f}")
+    tokens_per_sec=(train_loader.B*train_loader.T*grad_accum_steps)/(t1-t0)
+    print(f"step: {step} ------> loss: {loss_accum.item():.6f}----------->Norm: {norm:.4f} -----> LR: {lr:.4e}   -------> dt: {dt:.2f}ms--------> tokens/sec:{tokens_per_sec:.2f}")
 
 
 
