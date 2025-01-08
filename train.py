@@ -117,14 +117,14 @@ for step in range(max_steps):
     torch.cuda.synchronize()
     
     t1=time.time()
-    dt = (t1-t0) * 1000
-    tokens_per_sec=(train_loader.B*train_loader.T*grad_accum_steps*ddp_world_size)/(t1-t0)
+    dt = (t1-t0) 
+    tokens_per_sec=(train_loader.B*train_loader.T*grad_accum_steps*ddp_world_size)/(dt)
     if master_process:
-        print(f"step: {step} ------> loss: {loss_accum.item():.6f}----------->Norm: {norm:.4f} -----> LR: {lr:.4e}   -------> dt: {dt:.2f}ms--------> tokens/sec:{tokens_per_sec:.2f}")
-
+        print(f"step: {step} ------> loss: {loss_accum.item():.6f}----------->Norm: {norm:.4f} -----> LR: {lr:.4e}   -------> dt: {dt * 1000:.2f}ms--------> tokens/sec:{tokens_per_sec:.2f}")
 
 if ddp:
     destroy_process_group()
+    
 import sys; sys.exit(0)
 
 
