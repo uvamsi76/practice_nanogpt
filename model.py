@@ -25,8 +25,7 @@ class CasualSelfAttention(nn.Module):
         # self.attn_dropout = nn.Dropout(config.dropout)
         # self.resid_dropout = nn.Dropout(config.dropout)
         self.c_proj.NANOGPT_SCALE_INIT = 1
-        self.register_buffer("bias", torch.tril(torch.ones(config.block_size, config.block_size))
-                                    .view(1, 1, config.block_size, config.block_size))
+        # self.register_buffer("bias", torch.tril(torch.ones(config.block_size, config.block_size)).view(1, 1, config.block_size, config.block_size))
         self.n_head = config.n_head
         self.n_embd = config.n_embd
     
