@@ -12,7 +12,7 @@ from torch.distributed import init_process_group, destroy_process_group
 import os 
 
 from model import GPTconfig,GPT
-from utils import generate,DataLoaderLite,get_lr
+from utils import generate,DataLoaderLite,get_lr,evaluate_hellaswag
 
 
 # script to run using ddp : torchrun --standalone --nproc_per_node=2 train.py 
@@ -90,11 +90,21 @@ raw_model = model.module if ddp else model
 max_steps= 19073
 optimizer = raw_model.configure_optimisers(weight_decay=0.1,learning_rate=6e-4,device=device)
 
+
+
+log_dir="LOGS-METRICS"
+os.makedirs(log_dir,exist_ok=True)
+log_file=os.path.join(log_dir,f"metric_logs.txt")
+with open(log_file,"w") as f:
+    pass
+
+
 for step in range(max_steps):
 
     t0=time.time()
-
-    if step % 100 ==0:
+    last_step= step == max_steps-1
+    
+    if step % 250 ==0 or last_step:
         model.eval()
         val_loader.reset()
         with torch.no_grad():
@@ -112,10 +122,18 @@ for step in range(max_steps):
         
         if master_process:
             print(f"validation loss is : {val_loss_accum.item():.4f}")
+            with open(log_file,'a') as f:
+                f.write(f"{step} val {val_loss_accum.item()}\n")
 
-    if(step>0 and step%100==0 and False):
+
+    if(((step>0 and step%250==0 )or last_step )and (not use_compile)):
+        evaluate_hellaswag(ddp_world_size,ddp_rank,device,device_type, model, ddp, master_process, log_file,step)
+
+
+    if(((step>0 and step%250==0 )or last_step )and (not use_compile)):
         generate(model,num_return_sequences,device,max_length,ddp_rank,input_text="Hello I'm a language model,")
 
+    model.train()
     loss_accum=0.0
     for micro_step in range(grad_accum_steps):
         x,y=train_loader.next_batch()
@@ -154,6 +172,8 @@ for step in range(max_steps):
     
     if master_process:
         print(f"step: {step:.5d} --> loss: {loss_accum.item():.6f}-->Norm: {norm:.4f} ----> LR: {lr:.4e} ---> dt: {dt * 1000:.2f}ms ----> tokens/sec:{tokens_per_sec:.2f}")
+        with open(log_file,'a') as f:
+            f.write(f"{step} train {loss_accum.item()}\n")
 
 if ddp:
     destroy_process_group()
