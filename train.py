@@ -175,6 +175,9 @@ for step in range(max_steps):
         with open(log_file,'a') as f:
             f.write(f"{step} train {loss_accum.item()}\n")
 
+# if master_process:
+#     torch.save(model.module.state_dict(), "model_weights.pth")
+
 if ddp:
     destroy_process_group()
 
