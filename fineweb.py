@@ -24,14 +24,15 @@ shard_size= int(1e8) #100M tokens per shard total of 100shards
 
 DATA_CACHE_DIR= os.path.join(os.path.dirname(__file__),local_dir)
 os.makedirs(DATA_CACHE_DIR, exist_ok=True)
+custom_storage_path='~/jl_fs'
 
-fw=load_dataset("HuggingFaceFW/fineweb-edu",name=remote_name,split="train")
+fw=load_dataset("HuggingFaceFW/fineweb-edu",cache_dir=custom_storage_path,name=remote_name,split="train")
 
 enc= tiktoken.get_encoding("gpt2")
 
 eot=enc._special_tokens['<|endoftext|>']
 
-nprocs=max(1,os.cpu_count()//2)
+nprocs=max(1,os.cpu_count()-2)
 with mp.Pool(nprocs) as pool:
     shard_index=0
     all_tokens_np=np.empty((shard_size,), dtype=np.uint16)
