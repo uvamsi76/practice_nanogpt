@@ -55,8 +55,8 @@ max_length=32
 
 total_batch_size=524288
 
-B=32 #H100 is handling this well up to 64 a100 upto 32
-# B=16
+# B=32 #H100 is handling this well up to 64 a100 upto 32
+B=8
 T=1024
 
 grad_accum_steps=total_batch_size// (B*T*ddp_world_size)
@@ -171,7 +171,7 @@ for step in range(max_steps):
     tokens_per_sec=(train_loader.B*train_loader.T*grad_accum_steps*ddp_world_size)/(dt)
     
     if master_process:
-        print(f"step: {step:.5d} --> loss: {loss_accum.item():.6f}-->Norm: {norm:.4f} ----> LR: {lr:.4e} ---> dt: {dt * 1000:.2f}ms ----> tokens/sec:{tokens_per_sec:.2f}")
+        print(f"step: {step} --> loss: {loss_accum.item():.6f}-->Norm: {norm:.4f} ----> LR: {lr:.4e} ---> dt: {dt * 1000:.2f}ms ----> tokens/sec:{tokens_per_sec:.2f}")
         with open(log_file,'a') as f:
             f.write(f"{step} train {loss_accum.item()}\n")
 
