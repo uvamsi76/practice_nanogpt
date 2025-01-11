@@ -108,10 +108,10 @@ def generate(model,num_return_sequences,device,max_length,ddp_rank,input_text="H
             
             xcol=torch.gather(topk_ind,-1,ix)
             
-            x=torch.cat((x,xcol),dim=1)
+            xgen=torch.cat((xgen,xcol),dim=1)
         
     for i in range(num_return_sequences):
-        tokens=x[i,:max_length].tolist()
+        tokens=xgen[i,:max_length].tolist()
         decoded=enc.decode(tokens)
         print(f'------->>> Rank {ddp_rank} Sample {i} : \n |||---->> {decoded}' )
 

@@ -15,7 +15,7 @@ from model import GPTconfig,GPT
 from utils import generate,DataLoaderLite,get_lr,evaluate_hellaswag
 
 
-# script to run using ddp : torchrun --standalone --nproc_per_node=2 train.py 
+# script to run using ddp : torchrun --standalone --nproc_per_node=3 train.py 
 
 
 # device='cpu'
@@ -100,7 +100,7 @@ with open(log_file,"w") as f:
     pass
 
 
-for step in range(6):
+for step in range(max_steps):
 
     t0=time.time()
     last_step= step == max_steps-1
@@ -135,8 +135,8 @@ for step in range(6):
         generate(model,num_return_sequences,device,max_length,ddp_rank,input_text="Hello I'm a language model,")
 
     if(master_process):
-        if((step>0 and step%2==0) or last_step):
-            torch.save(model.module.state_dict(),f"modelvers/model_state_{snap_id}.pth")
+        if((step>0 and step%50==0) or last_step):
+            torch.save(model.module.state_dict(),f"/home/jl_fs/modelvers/model_state_{snap_id}.pth")
             snap_id+=1
 
     model.train()
@@ -183,8 +183,8 @@ for step in range(6):
 
 if master_process:
     model.module.cpu()
-    torch.save(model.module.state_dict(),f"model/model_state_final.pth")
-    torch.save(model.module, "model/final_model.pth")
+    torch.save(model.module.state_dict(),f"/home/jl_fs/model/model_state_final.pth")
+    torch.save(model.module, "/home/jl_fs/model/final_model.pth")
 
 if ddp:
     destroy_process_group()
