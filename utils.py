@@ -130,8 +130,9 @@ class DataLoaderLite:
         self.num_processes=num_processes
 
         assert split in {'train','val'}
+        local_dir='/home/jl_fs/data_shards/edu_fineweb10B'
 
-        data_root='edu_fineweb10B'
+        data_root=local_dir
         shards=os.listdir(data_root)
         shards=[s for s in shards if split in s]
         shards=sorted(shards)

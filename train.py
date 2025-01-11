@@ -53,10 +53,10 @@ if( torch.cuda.is_available()):
 num_return_sequences=5
 max_length=32
 
-total_batch_size=524288
-# total_batch_size=30
-B=32 #H100 is handling this well up to 64 a100 upto 32
-# B=1
+# total_batch_size=524288
+total_batch_size=16*1024
+# B=32 #H100 is handling this well up to 64 a100 upto 32
+B=4
 T=1024
 # T=30
 
@@ -100,7 +100,7 @@ with open(log_file,"w") as f:
     pass
 
 
-for step in range(max_steps):
+for step in range(6):
 
     t0=time.time()
     last_step= step == max_steps-1
@@ -135,7 +135,7 @@ for step in range(max_steps):
         generate(model,num_return_sequences,device,max_length,ddp_rank,input_text="Hello I'm a language model,")
 
     if(master_process):
-        if((step>0 and step%50==0) or last_step):
+        if((step>0 and step%2==0) or last_step):
             torch.save(model.module.state_dict(),f"modelvers/model_state_{snap_id}.pth")
             snap_id+=1
 
