@@ -53,10 +53,10 @@ if( torch.cuda.is_available()):
 num_return_sequences=5
 max_length=32
 
-# total_batch_size=524288
-total_batch_size=16*1024
-# B=32 #H100 is handling this well up to 64 a100 upto 32
-B=4
+total_batch_size=524288
+# total_batch_size=16*1024
+B=32 #H100 is handling this well up to 64 a100 upto 32
+# B=4
 T=1024
 # T=30
 
