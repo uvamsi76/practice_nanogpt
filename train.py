@@ -54,10 +54,11 @@ num_return_sequences=5
 max_length=32
 
 total_batch_size=524288
-
-# B=32 #H100 is handling this well up to 64 a100 upto 32
-B=8
+# total_batch_size=30
+B=32 #H100 is handling this well up to 64 a100 upto 32
+# B=1
 T=1024
+# T=30
 
 grad_accum_steps=total_batch_size// (B*T*ddp_world_size)
 
@@ -89,7 +90,7 @@ raw_model = model.module if ddp else model
 
 max_steps= 19073
 optimizer = raw_model.configure_optimisers(weight_decay=0.1,learning_rate=6e-4,device=device)
-
+snap_id=0
 
 
 log_dir="LOGS-METRICS"
@@ -133,6 +134,11 @@ for step in range(max_steps):
     if(((step>0 and step%250==0 )or last_step )and (not use_compile)):
         generate(model,num_return_sequences,device,max_length,ddp_rank,input_text="Hello I'm a language model,")
 
+    if(master_process):
+        if((step>0 and step%50==0) or last_step):
+            torch.save(model.module.state_dict(),f"modelvers/model_state_{snap_id}.pth")
+            snap_id+=1
+
     model.train()
     loss_accum=0.0
     for micro_step in range(grad_accum_steps):
@@ -175,8 +181,10 @@ for step in range(max_steps):
         with open(log_file,'a') as f:
             f.write(f"{step} train {loss_accum.item()}\n")
 
-# if master_process:
-#     torch.save(model.module.state_dict(), "model_weights.pth")
+if master_process:
+    model.module.cpu()
+    torch.save(model.module.state_dict(),f"model/model_state_final.pth")
+    torch.save(model.module, "model/final_model.pth")
 
 if ddp:
     destroy_process_group()
