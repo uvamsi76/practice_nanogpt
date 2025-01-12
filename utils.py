@@ -113,8 +113,8 @@ def generate(model,num_return_sequences,device,max_length,ddp_rank,input_text="H
     for i in range(num_return_sequences):
         tokens=xgen[i,:max_length].tolist()
         decoded=enc.decode(tokens)
-        print(f'------->>> Rank {ddp_rank} Sample {i} : \n |||---->> {decoded}' )
-
+        # print(f'------->>> Rank {ddp_rank} Sample {i} : \n |||---->> {decoded}' )
+        print(f'->> {decoded}' )
 
 def load_tokens(file_name):
     npt=np.load(file_name)
