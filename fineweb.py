@@ -18,7 +18,8 @@ def write_datafile(filename, tokens_np):
     np.save(filename, tokens_np)
 # --------------------------------------------------
 
-local_dir='/home/jl_fs/data_shards/edu_fineweb10B'
+# local_dir='/home/jl_fs/data_shards/edu_fineweb10B'
+local_dir='edu_fineweb10B'
 remote_name='sample-10BT'
 shard_size= int(1e8) #100M tokens per shard total of 100shards
 
