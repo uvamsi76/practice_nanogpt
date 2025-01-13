@@ -131,7 +131,6 @@ class DataLoaderLite:
 
         assert split in {'train','val'}
         local_dir=f'{base_path}edu_fineweb10B'
-
         data_root=local_dir
         shards=os.listdir(data_root)
         shards=[s for s in shards if split in s]
@@ -170,8 +169,8 @@ class DataLoaderLite:
     def next_batch(self):
         B,T = self.B,self.T
         buf=self.tokens[self.current_position:self.current_position+B*T+1]
-        x=buf[:-1].view(B,T)
-        y=buf[1:].view(B,T)
+        x=(buf[:-1]).view(B,T)
+        y=(buf[1:]).view(B,T)
         self.current_position+= B*T*self.num_processes
         if(self.current_position + (B*T*self.num_processes + 1) >len(self.tokens)):
             

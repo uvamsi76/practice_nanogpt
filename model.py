@@ -125,7 +125,7 @@ class GPT(nn.Module):
     def forward(self,idx,targets=None):
         b,T=idx.size()
         assert T <= self.config.block_size, f"Cannot forward sequence of length {T}, block size is only {self.config.block_size}"
-        pos=torch.arange(0,T,dtype=torch.long, device=idx.device).unsqueeze(0)
+        pos=torch.arange(0,T,dtype=torch.long, device=idx.device)
         pos_emb=self.transformer.wpe(pos) # pos (1,t) -----> (B,t)
         tok_emb=self.transformer.wte(idx) #(B,t,C)
         x = tok_emb + pos_emb

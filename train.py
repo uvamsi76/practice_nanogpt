@@ -24,8 +24,8 @@ from utils import generate,DataLoaderLite,get_lr,evaluate_hellaswag
 
 
 
-# base_path='/home/jl_fs/data_shards/'
-base_path=''
+base_path='/home/jl_fs/data_shards/'
+# base_path=''
 
 ddp= int(os.environ.get('RANK',-1)) != -1
 
@@ -58,12 +58,12 @@ if( torch.cuda.is_available()):
 num_return_sequences=5
 max_length=32
 
-# total_batch_size=524288
-total_batch_size=1*30
-# B=32 #H100 is handling this well up to 64 a100 upto 32
-B=1
-# T=1024
-T=30
+total_batch_size=524288
+# total_batch_size=1*30
+B=2 #H100 is handling this well up to 64 a100 upto 32
+# B=1
+T=1024
+# T=30
 
 grad_accum_steps=total_batch_size// (B*T*ddp_world_size)
 
@@ -75,9 +75,9 @@ if(master_process):
 
 print(f"I am GPU {ddp_rank}")
 
-train_loader=DataLoaderLite(B=B, T=T, process_rank=ddp_rank, num_processes=ddp_world_size, split='train', master_process=master_process)  
+train_loader=DataLoaderLite(B=B, T=T, process_rank=ddp_rank, num_processes=ddp_world_size, split='train', master_process=master_process,base_path=base_path)  
 
-val_loader=DataLoaderLite(B=B, T=T, process_rank=ddp_rank, num_processes=ddp_world_size, split='val', master_process=master_process)
+val_loader=DataLoaderLite(B=B, T=T, process_rank=ddp_rank, num_processes=ddp_world_size, split='val', master_process=master_process,base_path=base_path)
 
 torch.set_float32_matmul_precision('high') # to enable computations in fp32 
 
@@ -85,6 +85,8 @@ torch.set_float32_matmul_precision('high') # to enable computations in fp32
 # model=GPT.from_pretrained('gpt2')
 config = GPTconfig(vocab_size=50304)
 model = GPT(config)
+loaded_state_dict = torch.load('/home/jl_fs/model/model_state_final.pth')
+model.load_state_dict(loaded_state_dict)
 model.to(device)
 use_compile=False
 if(use_compile):
@@ -159,7 +161,7 @@ for step in range(max_steps):
             logits,loss=model(x,y)
         
         loss=loss / grad_accum_steps
-        loss_accum+=loss.detach()
+        loss_accum += loss.detach()
         loss.backward()
 
     if ddp:
@@ -167,7 +169,7 @@ for step in range(max_steps):
 
     norm=torch.nn.utils.clip_grad_norm_(model.parameters() , 1.0 )  # we are basically doing gradient clipping incase if model learns some outliers i would say
 
-    lr=get_lr(step)
+    lr=get_lr(step,max_steps = 19073)
 
     for param_group in optimizer.param_groups:
         param_group['lr'] = lr
