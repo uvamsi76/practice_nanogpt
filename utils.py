@@ -123,14 +123,14 @@ def load_tokens(file_name):
     return ptt
 
 class DataLoaderLite:
-    def __init__(self,B,T,process_rank,num_processes, split,master_process):
+    def __init__(self,B,T,process_rank,num_processes, split,master_process,base_path=''):
         self.B=B
         self.T=T
         self.process_rank=process_rank
         self.num_processes=num_processes
 
         assert split in {'train','val'}
-        local_dir='/home/jl_fs/data_shards/edu_fineweb10B'
+        local_dir=f'{base_path}edu_fineweb10B'
 
         data_root=local_dir
         shards=os.listdir(data_root)

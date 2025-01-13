@@ -22,6 +22,11 @@ from utils import generate,DataLoaderLite,get_lr,evaluate_hellaswag
 # if(torch.cuda.is_available()):
 #     device='cuda'
 
+
+
+# base_path='/home/jl_fs/data_shards/'
+base_path=''
+
 ddp= int(os.environ.get('RANK',-1)) != -1
 
 if ddp:
@@ -53,12 +58,12 @@ if( torch.cuda.is_available()):
 num_return_sequences=5
 max_length=32
 
-total_batch_size=524288
-# total_batch_size=16*1024
-B=32 #H100 is handling this well up to 64 a100 upto 32
-# B=4
-T=1024
-# T=30
+# total_batch_size=524288
+total_batch_size=1*30
+# B=32 #H100 is handling this well up to 64 a100 upto 32
+B=1
+# T=1024
+T=30
 
 grad_accum_steps=total_batch_size// (B*T*ddp_world_size)
 
@@ -74,7 +79,7 @@ train_loader=DataLoaderLite(B=B, T=T, process_rank=ddp_rank, num_processes=ddp_w
 
 val_loader=DataLoaderLite(B=B, T=T, process_rank=ddp_rank, num_processes=ddp_world_size, split='val', master_process=master_process)
 
-torch.set_float32_matmul_precision('high') # to enable computations in fp32 i think
+torch.set_float32_matmul_precision('high') # to enable computations in fp32 
 
 
 # model=GPT.from_pretrained('gpt2')
@@ -89,13 +94,13 @@ if ddp:
 raw_model = model.module if ddp else model 
 
 max_steps= 19073
-optimizer = raw_model.configure_optimisers(weight_decay=0.1,learning_rate=6e-4,device=device)
+optimizer = raw_model.configure_optimisers(weight_decay=0.1,learning_rate=6e-4,device_type=device_type)
 snap_id=0
 
 
 log_dir="LOGS-METRICS"
 os.makedirs(log_dir,exist_ok=True)
-log_file=os.path.join(log_dir,f"metric_logs.txt")
+log_file=os.path.join(log_dir,f"metric_logs-2.txt")
 with open(log_file,"w") as f:
     pass
 
@@ -131,15 +136,16 @@ for step in range(max_steps):
         evaluate_hellaswag(ddp_world_size,ddp_rank,device,device_type, model, ddp, master_process, log_file,step)
 
 
-    if(((step>0 and step%250==0 )or last_step )and (not use_compile)):
-        generate(model,num_return_sequences,device,max_length,ddp_rank,input_text="Hello I'm a language model,")
+    # if(((step>0 and step%250==0 )or last_step )and (not use_compile)):
+    #     generate(model,num_return_sequences,device,max_length,ddp_rank,input_text="Hello I'm a language model,")
 
-    if(master_process):
-        if((step>0 and step%50==0) or last_step):
-            torch.save(model.module.state_dict(),f"/home/jl_fs/modelvers/model_state_{snap_id}.pth")
-            snap_id+=1
+    # if(master_process):
+    #     if((step>0 and step%50==0) or last_step):
+    #         torch.save(model.module.state_dict(),f"/home/jl_fs/modelvers/model_state_{snap_id}.pth")
+    #         snap_id+=1
 
     model.train()
+    optimizer.zero_grad()
     loss_accum=0.0
     for micro_step in range(grad_accum_steps):
         x,y=train_loader.next_batch()
@@ -167,8 +173,8 @@ for step in range(max_steps):
         param_group['lr'] = lr
 
     optimizer.step()
-    
-    torch.cuda.synchronize()
+    if device_type == "cuda":
+        torch.cuda.synchronize()
     
     t1=time.time()
 
@@ -177,14 +183,15 @@ for step in range(max_steps):
     tokens_per_sec=(train_loader.B*train_loader.T*grad_accum_steps*ddp_world_size)/(dt)
     
     if master_process:
-        print(f"step: {step} --> loss: {loss_accum.item():.6f}-->Norm: {norm:.4f} ----> LR: {lr:.4e} ---> dt: {dt * 1000:.2f}ms ----> tokens/sec:{tokens_per_sec:.2f}")
+        print(f"step {step:5d} | loss: {loss_accum.item():.6f} | lr {lr:.4e} | norm: {norm:.4f} | dt: {dt*1000:.2f}ms | tok/sec: {tokens_per_sec:.2f}")
+
         with open(log_file,'a') as f:
             f.write(f"{step} train {loss_accum.item()}\n")
 
 if master_process:
     model.module.cpu()
-    torch.save(model.module.state_dict(),f"/home/jl_fs/model/model_state_final.pth")
-    torch.save(model.module, "/home/jl_fs/model/final_model.pth")
+    torch.save(model.module.state_dict(),f"model/model_state_final.pth")
+    torch.save(model.module, "model/final_model.pth")
 
 if ddp:
     destroy_process_group()

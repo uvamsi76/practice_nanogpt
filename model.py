@@ -105,11 +105,11 @@ class GPT(nn.Module):
         # weight initializatrion
         self.apply(self._initweights)
 
-        n_params=sum([p.numel() for p in self.transformer.parameters()])
+        # n_params=sum([p.numel() for p in self.transformer.parameters()])
 
         # print(f"The number of parameters inside this transformer is {n_params}")
 
-        print("The number of parameters : %.2fM"% (n_params/1e6))
+        # print("The number of parameters : %.2fM"% (n_params/1e6))
 
     def _initweights(self,module):
         if(isinstance(module,nn.Linear)):
@@ -185,7 +185,7 @@ class GPT(nn.Module):
 
         return model
 
-    def configure_optimisers(self,weight_decay,learning_rate,device):
+    def configure_optimisers(self,weight_decay,learning_rate,device_type):
 
         param_dict={pn: p for pn,p in self.named_parameters()}
         
@@ -196,7 +196,7 @@ class GPT(nn.Module):
         non_decay_params=[p for n,p in param_dict.items() if p.dim() < 2 ]
         optim_groups=[
                 {'params':decay_params,'weight_decay':weight_decay},
-                {'params':non_decay_params,weight_decay:0.0}
+                {'params':non_decay_params,'weight_decay':0.0}
         ]
         num_decay_params=sum(p.numel() for p in decay_params )
         non_num_decay_params=sum(p.numel() for p in non_decay_params )
@@ -204,7 +204,7 @@ class GPT(nn.Module):
         # print(f"num non-decayed parameter tensors= {non_num_decay_params}")
 
         fused_available= 'fused' in inspect.signature(torch.optim.AdamW).parameters
-        use_fused=fused_available and 'cuda' in device
+        use_fused=fused_available and device_type == "cuda"
         # print(f"using fused adamW: {use_fused}")
 
         optimizer=torch.optim.AdamW(optim_groups,lr=learning_rate, betas=(0.9,0.95),eps= 1e-8,fused=use_fused)
